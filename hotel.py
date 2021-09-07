@@ -26,10 +26,9 @@ class Hotel:
         return result
 
 
-def hotel_view(results: dict, params: dict) -> list:
+def hotel_view(result: list, params: dict) -> list:
     """Функция представления данных об отеле"""
     hotels = []
-    result = results['data']['body']['searchResults']['results']
     for i in range(len(result)):
         hotel_photos = []
         hotels.append(Hotel(result[i]['name'],
@@ -39,10 +38,10 @@ def hotel_view(results: dict, params: dict) -> list:
                             hotel_photos))
         if params['needs_photo'] == 1:
             hotel_photos.clear()
-            response = API_requests.get_photo(result[i]['id']).json()
+            response = API_requests.get_photo(result[i]['id']).json()  # Запрос фотографий
             for j in range(params['photo_quantity']):
                 photo_link = response['hotelImages'][j]['baseUrl']
-                size_suffix = response['hotelImages'][j]['sizes'][0]['suffix']
+                size_suffix = response['hotelImages'][j]['sizes'][0]['suffix']  # Выбор размера фотографий
                 photo = photo_link.replace('{size}', size_suffix)
                 hotel_photos.append(photo)
     return hotels
