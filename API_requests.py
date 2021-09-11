@@ -32,7 +32,7 @@ def make_request(params: dict, result: list = None) -> list:
                    'pageSize': params['results_quantity'],
                    'checkIn': current_date,
                    'checkOut': current_date + datetime.timedelta(days=7),
-                   'adults1': '1'}
+                   'adults1': params['adults_quantity']}
     if params['user_command'] == '/lowprice':
         querystring['sortOrder'] = 'PRICE'
     elif params['user_command'] == '/highprice':
