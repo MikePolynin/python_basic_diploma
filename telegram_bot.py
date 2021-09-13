@@ -99,21 +99,65 @@ def get_city(message: telebot.types.Message) -> None:
             bot.params['record'] = ['Запрос от ' + datetime.datetime.strftime(datetime.datetime.now(),
                                                                               '%Y.%m.%d %H:%M:%S')]
             bot.params['city_id'] = city_id
-            if bot.params['user_command'] == '/bestdeal' and 'min_price' not in bot.params.keys():
-                bot.params['page_number'] = 1
-                bot.send_message(message.from_user.id,
-                                 'Какая минимальная цена?')
-                bot.register_next_step_handler(message, get_min_price)
-                break
             bot.send_message(message.from_user.id,
-                             'Сколько отелей показать?')
-            bot.register_next_step_handler(message, city_quantity)
+                             'Сколько взрослых гостей?')
+            bot.register_next_step_handler(message, get_adults_quantity)
             break
         except IndexError:
             bot.send_message(message.from_user.id,
                              'Такого города не найдено')
             incorrect_city(message)
             break
+
+
+def get_adults_quantity(message: telebot.types.Message) -> None:
+    """Функция запроса количества взрослых гостей"""
+    while True:
+        try:
+            adults_quantity = int(message.text)
+            if adults_quantity <= 0:
+                bot.send_message(message.from_user.id,
+                                 'Число взрослых гостей должно быть больше 0')
+                incorrect_adults_quantity(message)
+                break
+            else:
+                bot.params['adults_quantity'] = int(message.text)
+                if bot.params['user_command'] == '/bestdeal' and 'min_price' not in bot.params.keys():
+                    bot.params['page_number'] = 1
+                    bot.send_message(message.from_user.id,
+                                     'Какая минимальная цена?')
+                    bot.register_next_step_handler(message, get_min_price)
+                    break
+                bot.send_message(message.from_user.id,
+                                 'Сколько отелей показать?')
+                bot.register_next_step_handler(message, city_quantity)
+                break
+        except ValueError:
+            bot.send_message(message.from_user.id,
+                             'Используйте цифры')
+            incorrect_adults_quantity(message)
+            break
+
+
+def incorrect_adults_quantity(message: telebot.types.Message) -> None:
+    """Функция повторного запроса количества взрослых гостей"""
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    key_yes = telebot.types.InlineKeyboardButton(text='Да', callback_data='yes')
+    keyboard.add(key_yes)
+    key_no = telebot.types.InlineKeyboardButton(text='Нет', callback_data='no')
+    keyboard.add(key_no)
+    bot.send_message(message.from_user.id,
+                     'Ввести количество взрослых гостей снова?', reply_markup=keyboard)
+
+    @bot.callback_query_handler(func=lambda call: True)
+    def callback_worker(call: telebot.types.CallbackQuery) -> None:
+        """Обработчик выбранного ответа"""
+        if call.data == 'yes':
+            bot.send_message(message.from_user.id,
+                             'Сколько взрослых гостей?')
+            bot.register_next_step_handler(message, get_adults_quantity)
+        elif call.data == 'no':
+            bot.help_func(message)
 
 
 def get_min_price(message: telebot.types.Message) -> None:
@@ -378,8 +422,10 @@ def needs_photo(message: telebot.types.Message) -> None:
             bot.params['needs_photo'] = 0
             response = API_requests.make_request(bot.params)
             if bot.params['user_command'] == '/bestdeal':
-                answer = 'Результаты поиска в "{0}" по цене "{1} - {2}" и на расстоянии от центра "{3} - {4}"\n'. \
+                answer = 'Результаты поиска в "{0}" для {1} гостей по цене "{2} - {3}" ' \
+                         'и на расстоянии от центра "{4} - {5}"\n'. \
                     format(bot.params['city'],
+                           bot.params['adults_quantity'],
                            bot.params['min_price'],
                            bot.params['max_price'],
                            bot.params['min_distance'],
@@ -388,8 +434,9 @@ def needs_photo(message: telebot.types.Message) -> None:
                 bot.params['record'].append(answer)
                 bot.send_message(message.from_user.id, answer)
             else:
-                answer = 'Результаты поиска в "{0}" по запросу "{1}"\n'. \
+                answer = 'Результаты поиска в "{0}" для {1} гостей по запросу "{2}"\n'. \
                     format(bot.params['city'],
+                           bot.params['adults_quantity'],
                            bot.params['user_command'][1:])
                 bot.params['record'].append(0)
                 bot.params['record'].append(answer)
@@ -443,8 +490,10 @@ def photo_quantity(message: telebot.types.Message) -> None:
                 bot.params['photo_quantity'] = int(message.text)
                 response = API_requests.make_request(bot.params)
                 if bot.params['user_command'] == '/bestdeal':
-                    answer = 'Результаты поиска в "{0}" по цене "{1} - {2}" и на расстоянии от центра "{3} - {4}"\n'. \
+                    answer = 'Результаты поиска в "{0}" для {1} гостей по цене "{2} - {3}" ' \
+                             'и на расстоянии от центра "{4} - {5}"\n'. \
                         format(bot.params['city'],
+                               bot.params['adults_quantity'],
                                bot.params['min_price'],
                                bot.params['max_price'],
                                bot.params['min_distance'],
@@ -453,8 +502,9 @@ def photo_quantity(message: telebot.types.Message) -> None:
                     bot.params['record'].append(answer)
                     bot.send_message(message.from_user.id, answer)
                 else:
-                    answer = 'Результаты поиска в "{0}" по запросу "{1}"\n'. \
+                    answer = 'Результаты поиска в "{0}" для {1} гостей по запросу "{2}"\n'. \
                         format(bot.params['city'],
+                               bot.params['adults_quantity'],
                                bot.params['user_command'][1:])
                     bot.params['record'].append(1)
                     bot.params['record'].append(answer)
